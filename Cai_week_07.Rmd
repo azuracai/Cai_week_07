@@ -96,6 +96,7 @@ df_cleaned %>% filter(!is.na(Income) & !is.na(`Births attended by skilled health
   ggplot(aes(x=Income, y=`Births attended by skilled health personnel (%)`, fill=Country)) +
   geom_point(pch=21, show.legend = F) + theme_bw() +
   facet_wrap(~ Year) + ggtitle("Income vs Percentage of Attended Births") 
+head(df_cleaned)
 ```
  
 
@@ -111,7 +112,7 @@ We only keep the most recent year record for each country using the `max(row_num
 ```{r}
 df_country_demographics <- df_cleaned %>% group_by(Country) %>% filter(row_number()==max(row_number()))
 df_country_demographics$Country <- df_country_demographics$Country %>%
-  tolower() %>% str_replace("\\([a-z ]+\\)", "") %>% trim() %>%
+  tolower() %>% str_replace("\\([a-z ]+\\)", "") %>% str_trim() %>%
   str_replace_all("-", " ")
 ```
 
