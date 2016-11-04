@@ -70,7 +70,8 @@ After cleaning both data sets, we merge them by `Country` and `Year`, and only r
 
 ```{r}
 df <- merge(mortality, income, by=c("Country", "Year"))
-df_cleaned <- df %>% filter(!is.na(Income) & (!is.na(Mortality.num) | !is.na(`Births attended by skilled health personnel (%)`)))
+df_cleaned <- df %>% 
+  filter(!is.na(Income) & (!is.na(Mortality.num) | !is.na(`Births attended by skilled health personnel (%)`)))
 ```
 
 
