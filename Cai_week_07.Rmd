@@ -14,12 +14,14 @@ library(ggthemes)
 ```
 
 
+First, we downlad the `mortality.csv` file and save it into the folder named `data`.
 
 ```{r, include=FALSE}
-mortality <- read_csv("mortality.csv")
+mortality <- read_csv("data/mortality.csv")
 ```
 
-We clean the `mortality` as the folllowing steps.
+
+We then clean the `mortality` as the folllowing steps.
 
 ```{r}
 mortality$Year <- mortality$Year %>% str_sub(end = 4) %>% as.integer()
@@ -46,9 +48,12 @@ mortality$Upper_bound <- as.integer(map_chr(str_split(mortality$`Maternal mortal
 --->
 
 
+Next, we download the `income.csv` file and save it into the `data` folder.
+
 ```{r, include=FALSE}
-income <- read_csv("income.csv", skip = 1)
+income <- read_csv("data/income.csv", skip = 1)
 ```
+
 
 We then clean the `income` data as shown below.
 
@@ -68,7 +73,7 @@ df <- df %>% filter(!is.na(Income) & (!is.na(Mortality.num) | !is.na(`Births att
 ```
 
 
-Since only year 1990 and 2000 contains non-missing value, the following graph displays the number of maternal mortality against income. And the plots below show that  
+Since only year 1990 and 2000 contains non-missing value, the following graph displays the number of maternal mortality against income. And the plots below show that countries with lower gross income have greater number of maternal mortality. Comparing the number of mortality in 2000 with that in 1990, we see that the number of maternal mortality decreased in most countries because their national gross income increased in 2000.
 
 ```{r}
 # income, maternal mortality
@@ -81,20 +86,48 @@ df %>% filter(!is.na(Income) & !is.na(Mortality.num)) %>%
 ```
 
 
+The following graph plots the percentage of births atteded by skilled health personnel against income between 2004 and 2013. From the graph we see that the even some countries with low gross national income have high percentage of births attended by skill health personnel in the 20th century. After 2010, countries with higher gross national income have higher percentage of attended births then countries with lower gorss national income.
+
 ```{r}
 # income, percentage attended births
 df %>% filter(!is.na(Income) & !is.na(`Births attended by skilled health personnel (%)`)) %>% 
   ggplot(aes(x=Income, y=`Births attended by skilled health personnel (%)`, fill=Country)) +
-  geom_point(aes(size=Income), pch=21, show.legend = F) +
-  facet_wrap(~ Year) + ggtitle("Income vs Percentage of Attended Births")
+  geom_point(pch=21, show.legend = F) + theme_bw() +
+  facet_wrap(~ Year) + ggtitle("Income vs Percentage of Attended Births") 
 ```
+ 
 
-
+We save a `clean_df.csv` file with the merged, cleaned, and tidy data in the folder named `data`.
 
 ```{r}
-write_csv(df, path = "cleaned_df.csv")
-
-
+write_csv(df, path = "data/cleaned_df.csv")
 ```
+
+
+We only keep the most recent year record for each country using the `max(row_number())`. Since the first letter of the country names in the data frame are capitalized, we need to convert the country names to lower case. We also need to remove the `-` in the country names, and trim them.
+
+```{r}
+df_country_demographics <- df %>% group_by(Country) %>% filter(row_number()==max(row_number()))
+df_country_demographics$Country <- df_country_demographics$Country %>%
+  tolower() %>% str_replace("\\([a-z ]+\\)", "") %>% trim() %>%
+  str_replace_all("-", " ")
+```
+
+
+The world map of maternal mortality using the most recent year of each country is shown below. From the map, we see that the number of maternal mortality is highest in Africa, while United States has relatively low number of maternal mortality.
+
+```{r, warning=F}
+df_country_demographics %>% dplyr::rename(region = Country, value = Mortality.num) %>%
+  country_choropleth(title = "Maternal Mortality", num_colors = 9)
+```
+
+
+
+
+
+
+
+
+
 
 
