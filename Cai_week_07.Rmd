@@ -31,6 +31,7 @@ mortality$Lower_bound <- mortality$`Maternal mortality ratio (per 100 000 live b
   str_extract("\\[[ 0-9]+") %>% str_replace_all("[ \\[]", "") %>% as.integer()
 mortality$Upper_bound <- mortality$`Maternal mortality ratio (per 100 000 live births)` %>%
   str_extract("-[ 0-9]+") %>% str_replace_all("[ -]", "") %>% as.integer()
+mortality <- select(mortality, -`Maternal mortality ratio (per 100 000 live births)`)
 head(mortality)
 ```
 
@@ -69,7 +70,7 @@ After cleaning both data sets, we merge them by `Country` and `Year`, and only r
 
 ```{r}
 df <- merge(mortality, income, by=c("Country", "Year"))
-df <- df %>% filter(!is.na(Income) & (!is.na(Mortality.num) | !is.na(`Births attended by skilled health personnel (%)`)))
+df_cleaned <- df %>% filter(!is.na(Income) & (!is.na(Mortality.num) | !is.na(`Births attended by skilled health personnel (%)`)))
 ```
 
 
@@ -77,7 +78,7 @@ Since only year 1990 and 2000 contains non-missing value, the following graph di
 
 ```{r}
 # income, maternal mortality
-df %>% filter(!is.na(Income) & !is.na(Mortality.num)) %>% 
+df_cleaned %>% filter(!is.na(Income) & !is.na(Mortality.num)) %>% 
   ggplot(aes(x=Income, y=Mortality.num, fill=Country)) +
   geom_point(aes(size=Income), pch=21, show.legend = F) +
   facet_wrap(~ Year) + theme_bw() +
@@ -90,7 +91,7 @@ The following graph plots the percentage of births atteded by skilled health per
 
 ```{r}
 # income, percentage attended births
-df %>% filter(!is.na(Income) & !is.na(`Births attended by skilled health personnel (%)`)) %>% 
+df_cleaned %>% filter(!is.na(Income) & !is.na(`Births attended by skilled health personnel (%)`)) %>% 
   ggplot(aes(x=Income, y=`Births attended by skilled health personnel (%)`, fill=Country)) +
   geom_point(pch=21, show.legend = F) + theme_bw() +
   facet_wrap(~ Year) + ggtitle("Income vs Percentage of Attended Births") 
@@ -100,14 +101,14 @@ df %>% filter(!is.na(Income) & !is.na(`Births attended by skilled health personn
 We save a `clean_df.csv` file with the merged, cleaned, and tidy data in the folder named `data`.
 
 ```{r}
-write_csv(df, path = "data/cleaned_df.csv")
+write_csv(df_cleaned, path = "data/cleaned_df.csv")
 ```
 
 
 We only keep the most recent year record for each country using the `max(row_number())`. Since the first letter of the country names in the data frame are capitalized, we need to convert the country names to lower case. We also need to remove the `-` in the country names, and trim them.
 
 ```{r}
-df_country_demographics <- df %>% group_by(Country) %>% filter(row_number()==max(row_number()))
+df_country_demographics <- df_cleaned %>% group_by(Country) %>% filter(row_number()==max(row_number()))
 df_country_demographics$Country <- df_country_demographics$Country %>%
   tolower() %>% str_replace("\\([a-z ]+\\)", "") %>% trim() %>%
   str_replace_all("-", " ")
