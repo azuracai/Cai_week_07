@@ -7,53 +7,92 @@ output: html_document
 
 ```{r setup, include=FALSE}
 library(tidyverse)
+library(stringr)
 library(choroplethr)
 library(choroplethrMaps)
+library(ggthemes)
 ```
 
 
 
+```{r, include=FALSE}
+mortality <- read_csv("mortality.csv")
+```
+
+We clean the `mortality` as the folllowing steps.
 
 ```{r}
+mortality$Year <- mortality$Year %>% str_sub(end = 4) %>% as.integer()
+mortality$Mortality.num <- mortality$`Maternal mortality ratio (per 100 000 live births)` %>%
+  str_extract("[0-9 ]+\\[") %>% str_replace_all("[ \\[]", "") %>% as.integer()
+mortality$Lower_bound <- mortality$`Maternal mortality ratio (per 100 000 live births)` %>%
+  str_extract("\\[[ 0-9]+") %>% str_replace_all("[ \\[]", "") %>% as.integer()
+mortality$Upper_bound <- mortality$`Maternal mortality ratio (per 100 000 live births)` %>%
+  str_extract("-[ 0-9]+") %>% str_replace_all("[ -]", "") %>% as.integer()
+head(mortality)
+```
 
 
+<!--- does not work because NA value can not be spit into NA;NA;NA, so error in the map_chr
+```{r, eval=FALSE}
+mortality$`Maternal mortality ratio (per 100 000 live births)` <- 
+  mortality$`Maternal mortality ratio (per 100 000 live births)` %>% 
+  str_replace_all("[ \\]]", "") %>% str_replace_all("[\\[\\]-]", ";")
+# wouldn't work because NA value can not be spit into NA;NA;NA
+mortality$Num <- as.integer(map_chr(str_split(mortality$`Maternal mortality ratio (per 100 000 live births)`, pattern=";"), 1))
+mortality$Lower_bound <- as.integer(map_chr(str_split(mortality$`Maternal mortality ratio (per 100 000 live births)`, pattern=";", na.rm=T), 2))
+mortality$Upper_bound <- as.integer(map_chr(str_split(mortality$`Maternal mortality ratio (per 100 000 live births)`, pattern=";"), 3)) 
+```
+--->
 
+
+```{r, include=FALSE}
+income <- read_csv("income.csv", skip = 1)
+```
+
+We then clean the `income` data as shown below.
+
+```{r}
+income$`2013` <- as.integer(str_replace_all(income$`2013`, " ", ""))
+income <- income %>% gather(`2013`:`1990`, key="Year", value="Income")
+income$Year <- as.integer(income$Year)
+head(income)
+```
+
+
+After cleaning both data sets, we merge them by `Country` and `Year`, and only retain rows that have non-missing per capital income values and either non-missing maternal mortality values or non-missing percentage attended births. This results in the new data frame `df`.
+
+```{r}
+df <- merge(mortality, income, by=c("Country", "Year"))
+df <- df %>% filter(!is.na(Income) & (!is.na(Mortality.num) | !is.na(`Births attended by skilled health personnel (%)`)))
+```
+
+
+Since only year 1990 and 2000 contains non-missing value, the following graph displays the number of maternal mortality against income. And the plots below show that  
+
+```{r}
+# income, maternal mortality
+df %>% filter(!is.na(Income) & !is.na(Mortality.num)) %>% 
+  ggplot(aes(x=Income, y=Mortality.num, fill=Country)) +
+  geom_point(aes(size=Income), pch=21, show.legend = F) +
+  facet_wrap(~ Year) + theme_bw() +
+  ggtitle("Income vs Number of Mortality in 1990 and 2000") +
+  ylab("Number of Maternal Mortality")
 ```
 
 
 ```{r}
-
-
-
+# income, percentage attended births
+df %>% filter(!is.na(Income) & !is.na(`Births attended by skilled health personnel (%)`)) %>% 
+  ggplot(aes(x=Income, y=`Births attended by skilled health personnel (%)`, fill=Country)) +
+  geom_point(aes(size=Income), pch=21, show.legend = F) +
+  facet_wrap(~ Year) + ggtitle("Income vs Percentage of Attended Births")
 ```
 
 
 
 ```{r}
-
-
-
-```
-
-
-
-```{r}
-
-
-
-```
-
-
-```{r}
-
-
-
-```
-
-
-
-```{r}
-
+write_csv(df, path = "cleaned_df.csv")
 
 
 ```
